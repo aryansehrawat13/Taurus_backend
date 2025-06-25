@@ -1,0 +1,20 @@
+{
+  "name": "torrent-streamer",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.10.0",
+    "basic-auth": "^2.0.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "webtorrent": "^2.6.8"
+  }
+}
