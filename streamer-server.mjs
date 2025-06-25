@@ -124,18 +124,21 @@ function checkHealthAndStream(torrent, req, res) {
     return res.status(404).send('No MP4 file found in torrent.');
   }
 
-  const connectedPeers = torrent.numPeers;
-  const fileLength = mp4File.length;
+  const tryStream = () => {
+    const length = mp4File.length;
 
-  console.log(`🌐 Peers connected: ${connectedPeers}`);
-  console.log(`📦 File size: ${fileLength} bytes`);
+    if (length > 0) {
+      console.log(`📦 File size: ${length} bytes`);
+      stream(torrent, req, res);
+    } else {
+      console.log('⏳ Waiting for file size...');
+      setTimeout(tryStream, 1000);
+    }
+  };
 
-  if (connectedPeers === 0 || fileLength === 0) {
-    return res.status(503).send('Torrent is not healthy. Try again later.');
-  }
-
-  stream(torrent, req, res);
+  tryStream();
 }
+
 
 
 
