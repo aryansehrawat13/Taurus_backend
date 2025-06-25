@@ -6,7 +6,8 @@ import axios from 'axios';
 const app = express();
 const client = new WebTorrent();
 
-app.use(cors({ origin: '*' }));
+app.use(cors({ origin: '*', methods: ['GET'], allowedHeaders: ['Authorization'] }));
+
 
 
 // OR more securely (replace with actual IP/port of your mobile)
