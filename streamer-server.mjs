@@ -126,8 +126,11 @@ app.get('/download', async (req, res) => {
     const filename = encodeURIComponent(file.name);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Length', file.length);
 
     file.createReadStream().pipe(res);
+    console.log(`📥 Downloading file: ${file.name} (${file.length} bytes)`);
+
   });
 
   torrent.once('error', err => {
