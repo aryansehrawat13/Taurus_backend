@@ -101,6 +101,42 @@ app.get('/stream', (req, res) => {
     }
 });
 
+app.get('/download', async (req, res) => {
+  const magnet = req.query.magnet;
+  if (!magnet) return res.status(400).send('Magnet link is required.');
+
+  let infoHash;
+  try {
+    infoHash = extractInfoHash(magnet);
+  } catch (err) {
+    return res.status(400).send('Invalid magnet URI');
+  }
+
+  let torrent = client.torrents.find(t => t.infoHash === infoHash);
+
+  if (!torrent) {
+    console.log('📥 Adding torrent for download...');
+    torrent = client.add(magnet, { path: './downloads' });
+  }
+
+  torrent.once('ready', () => {
+    const file = torrent.files.find(f => f.name.match(/\.(mp4|mkv|webm)$/i));
+    if (!file) return res.status(404).send('No downloadable file found.');
+
+    const filename = encodeURIComponent(file.name);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+
+    file.createReadStream().pipe(res);
+  });
+
+  torrent.once('error', err => {
+    console.error('❌ Download error:', err.message);
+    res.status(500).send('Failed to prepare download.');
+  });
+});
+
+
 function checkHealthAndStream(torrent, req, res, retries = 10) {
   const videoFile = torrent.files.find(f => f.name.match(/\.(mp4|mkv|webm)$/i));
   if (!videoFile) return res.status(404).send('No video file found in torrent.');
