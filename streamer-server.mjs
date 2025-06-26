@@ -101,6 +101,21 @@ app.get('/stream', (req, res) => {
     }
 });
 
+function checkHealthAndStream(torrent, req, res, retries = 10) {
+  const videoFile = torrent.files.find(f => f.name.match(/\.(mp4|mkv|webm)$/i));
+  if (!videoFile) return res.status(404).send('No video file found in torrent.');
+
+  if (videoFile.length > 0 && torrent.numPeers > 0) {
+    return stream(torrent, req, res);
+  }
+
+  if (retries <= 0) {
+    return res.status(503).send('Still waiting on metadata. Try again later.');
+  }
+
+  console.log(`⏳ Waiting for metadata... retrying (${10 - retries}/10)`);
+  setTimeout(() => checkHealthAndStream(torrent, req, res, retries - 1), 1000);
+}
 
 
 function streamWhenReady(torrent, req, res) {
