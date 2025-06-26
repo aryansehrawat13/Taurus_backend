@@ -118,42 +118,10 @@ function streamWhenReady(torrent, req, res) {
   });
 }
 
-function checkHealthAndStream(torrent, req, res) {
-  const mp4File = torrent.files.find(f => f.name.endsWith('.mp4'));
-  if (!mp4File) {
-    return res.status(404).send('No MP4 file found in torrent.');
-  }
-
-  const tryStream = () => {
-    const length = mp4File.length;
-
-    if (length > 0) {
-      console.log(`📦 File size: ${length} bytes`);
-      stream(torrent, req, res);
-    } else {
-      console.log('⏳ Waiting for file size...');
-      setTimeout(tryStream, 1000);
-    }
-  };
-
-  tryStream();
-}
-
-
-
-
-function extractInfoHash(magnetURI) {
-    const match = magnetURI.match(/urn:btih:([a-fA-F0-9]+)/i);
-    if (!match) throw new Error('Invalid magnet URI');
-    return match[1].toLowerCase();
-}
-
-
-
 function stream(torrent, req, res) {
-    const file = torrent.files.find(f => f.name.endsWith('.mp4'));
+    const file = torrent.files.find(f => f.name.match(/\.(mp4|mkv|webm)$/i)); // ✅ broader support
     if (!file) {
-        return res.status(404).send('No MP4 file found in torrent.');
+        return res.status(404).send('No playable video file found in torrent.');
     }
 
     const total = file.length;
@@ -164,7 +132,7 @@ function stream(torrent, req, res) {
 
         res.writeHead(200, {
             'Content-Length': total,
-            'Content-Type': 'video/mp4',
+            'Content-Type': 'video/mp4', // Still use mp4 here unless you add detection
         });
 
         const fullStream = file.createReadStream();
@@ -186,7 +154,7 @@ function stream(torrent, req, res) {
         'Content-Range': `bytes ${start}-${end}/${total}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunksize,
-        'Content-Type': 'video/mp4',
+        'Content-Type': 'video/mp4', // optionally detect actual mime type
     });
 
     const stream = file.createReadStream({ start, end });
@@ -201,6 +169,19 @@ function stream(torrent, req, res) {
 
     stream.pipe(res);
 }
+
+
+
+
+
+function extractInfoHash(magnetURI) {
+    const match = magnetURI.match(/urn:btih:([a-fA-F0-9]+)/i);
+    if (!match) throw new Error('Invalid magnet URI');
+    return match[1].toLowerCase();
+}
+
+
+
 
 function buildMagnetLink(hash, name) {
     return `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(name)}&tr=udp://tracker.openbittorrent.com:80/announce&tr=udp://tracker.opentrackr.org:1337/announce`;
