@@ -119,25 +119,31 @@ app.get('/download', async (req, res) => {
     torrent = client.add(magnet, { path: './downloads' });
   }
 
-  torrent.once('ready', () => {
-    const file = torrent.files.find(f => f.name.match(/\.(mp4|mkv|webm)$/i));
-    if (!file) return res.status(404).send('No downloadable file found.');
+  // ⏳ Wait for metadata manually (max 10 seconds)
+  let retries = 10;
+  while (!torrent.ready && retries > 0) {
+    console.log(`⏳ Waiting for metadata... (${10 - retries}/10)`);
+    await new Promise(r => setTimeout(r, 1000));
+    retries--;
+  }
 
-    const filename = encodeURIComponent(file.name);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Length', file.length);
+  if (!torrent.ready) {
+    console.warn('❌ Timeout waiting for metadata.');
+    return res.status(504).send('No peers or metadata timeout.');
+  }
 
-    file.createReadStream().pipe(res);
-    console.log(`📥 Downloading file: ${file.name} (${file.length} bytes)`);
+  const file = torrent.files.find(f => f.name.match(/\.(mp4|mkv|webm)$/i));
+  if (!file) return res.status(404).send('No downloadable video file found.');
 
-  });
+  const filename = encodeURIComponent(file.name);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Length', file.length);
 
-  torrent.once('error', err => {
-    console.error('❌ Download error:', err.message);
-    res.status(500).send('Failed to prepare download.');
-  });
+  file.createReadStream().pipe(res);
+  console.log(`📥 Downloading: ${file.name}`);
 });
+
 
 
 function checkHealthAndStream(torrent, req, res, retries = 10) {
