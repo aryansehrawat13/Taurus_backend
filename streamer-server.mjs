@@ -2,6 +2,9 @@ import WebTorrent from 'webtorrent';
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+import {job} from './cron.js';
+
+job.start();
 
 const app = express();
 const client = new WebTorrent();
